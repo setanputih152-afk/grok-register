@@ -688,8 +688,32 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
             challengeIframeBody = challengeIframe.ele("tag:body").shadow_root
             challengeButton = challengeIframeBody.ele("tag:input")
             challengeButton.click()
-        except:
-            pass
+        except Exception:
+            # x.ai 的 TurnstileProvider 偶发不触发 render（api.js 已加载但容器一直为空）。
+            # 第 4 次起用已知 sitekey 强制显式 render，callback 直接写入隐藏 input。
+            if i >= 3:
+                try:
+                    page.run_js("""
+if (window.__tsForced) return 'already';
+const input = document.querySelector('input[name="cf-turnstile-response"]');
+if (!input || typeof turnstile === 'undefined') return 'not-ready';
+const container = input.parentElement.firstElementChild;
+if (!container) return 'not-ready';
+window.__tsForced = turnstile.render(container, {
+    sitekey: '0x4AAAAAAAhr9JGVDZbrZOo0',
+    theme: 'light',
+    size: 'flexible',
+    callback: function(token) {
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, token);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+});
+return 'rendered:' + window.__tsForced;
+                        """)
+                except Exception:
+                    pass
         time.sleep(1)
     raise Exception("failed to solve turnstile")
 

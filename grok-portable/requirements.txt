@@ -1,0 +1,4 @@
+patchright>=1.49
+curl_cffi>=0.7.0
+requests
+nodriver
