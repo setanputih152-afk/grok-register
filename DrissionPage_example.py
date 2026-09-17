@@ -657,11 +657,13 @@ return { url: location.href, inputs, buttons };
 
 def getTurnstileToken():
     # 复用现有 turnstile 处理逻辑，在最终注册页需要时再触发。
+    # 窗口拉长到 ~180 秒：给真人留出手动点击 checkbox 的时间。
     page.run_js("try { turnstile.reset() } catch(e) { }")
 
     turnstileResponse = None
+    print("[Turnstile] 如果 Chrome 窗口里出现复选框，请用鼠标点击它（有 ~180 秒）")
 
-    for i in range(0, 15):
+    for i in range(0, 180):
         try:
             turnstileResponse = page.run_js("try { return turnstile.getResponse() } catch(e) { return null }")
             if turnstileResponse:
